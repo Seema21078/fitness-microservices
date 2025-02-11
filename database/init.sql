@@ -1,8 +1,7 @@
 -- Create schemas for microservices
-CREATE SCHEMA activity_service;
-CREATE SCHEMA ml_mood_service;
-CREATE SCHEMA notification_service;
-
+CREATE SCHEMA IF NOT EXISTS activity_service;
+CREATE SCHEMA IF NOT EXISTS ml_mood_service;
+CREATE SCHEMA IF NOT EXISTS notification_service;
 
 -- Users Table (Common, but kept in Activity Service schema)
 CREATE TABLE activity_service.users (
@@ -18,7 +17,7 @@ CREATE TABLE activity_service.activity_data (
     user_id INT NOT NULL,
     date DATE NOT NULL,
     steps INT,
-    calories_burned INT,
+    calories_burned FLOAT,
     distance_km FLOAT,
     active_minutes INT,
     workout_type VARCHAR(50),

@@ -10,10 +10,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Define the file paths for each table
 DATA_FILES = {
-    "users": "database/data/users.csv",
-    "activity": "database/data/activity.csv",
-    "mood": "database/data/mood.csv",
-    "notifications": "database/data/notifications.csv",
+    "users": "data/users.csv",
+    "activity": "data/activity.csv",
+    "mood": "data/mood.csv",
 }
 
 def insert_data_from_csv(table_name, file_path, insert_query):
@@ -39,9 +38,8 @@ def insert_data_from_csv(table_name, file_path, insert_query):
 # Insert queries for each table
 INSERT_QUERIES = {
     "users": "INSERT INTO activity_service.users (user_id, name, age, gender, weight) VALUES (%s, %s, %s, %s, %s)",
-    "activity": "INSERT INTO activity_service.activity (user_id, date, steps, calories_burned, distance_km, active_minutes, workout_type) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-    "mood": "INSERT INTO ml_mood_service.mood (user_id, date, mood) VALUES (%s, %s, %s)",
-    "notifications": "INSERT INTO notification_service.notifications (user_id, timestamp, message) VALUES (%s, %s, %s)",
+    "activity": "INSERT INTO activity_service.activity_data (user_id, date, steps, calories_burned, distance_km, active_minutes, workout_type) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+    "mood": "INSERT INTO ml_mood_service.mood_data (user_id, date, heart_rate_avg, sleep_hours, mood, weather_conditions, location) VALUES (%s, %s, %s, %s, %s, %s, %s)",
 }
 
 # Execute data insertion for each table
