@@ -24,7 +24,6 @@ def insert_data_from_csv(table_name, file_path, insert_query):
         with open(file_path, "r", encoding="utf-8") as file:
             reader = csv.reader(file)
             next(reader)  # Skip header row
-            
             cur.executemany(insert_query, reader)
 
         conn.commit()
@@ -37,7 +36,7 @@ def insert_data_from_csv(table_name, file_path, insert_query):
 
 # Insert queries for each table
 INSERT_QUERIES = {
-    "users": "INSERT INTO activity_service.users (user_id, name, age, gender, weight) VALUES (%s, %s, %s, %s, %s)",
+    "users": "INSERT INTO user_service.users (user_id, name, age, gender, weight,email) VALUES (%s, %s, %s, %s, %s,%s)",
     "activity": "INSERT INTO activity_service.activity_data (user_id, date, steps, calories_burned, distance_km, active_minutes, workout_type) VALUES (%s, %s, %s, %s, %s, %s, %s)",
     "mood": "INSERT INTO ml_mood_service.mood_data (user_id, date, heart_rate_avg, sleep_hours, mood, weather_conditions, location) VALUES (%s, %s, %s, %s, %s, %s, %s)",
 }
