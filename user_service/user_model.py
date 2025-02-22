@@ -11,3 +11,5 @@ class User(Base):
     gender = Column(String(20),nullable=False)
     weight = Column(Float,nullable=False)
     email = Column(String(50), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Get database URL from environment variables
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL_SYNC")
 
 def execute_sql_file():
     """Reads and executes init.sql to set up the database schema."""

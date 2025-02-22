@@ -1,17 +1,18 @@
 -- Create schemas for microservices
 CREATE SCHEMA IF NOT EXISTS user_service;
 CREATE SCHEMA IF NOT EXISTS activity_service;
-CREATE SCHEMA IF NOT EXISTS ml_mood_service;
+CREATE SCHEMA IF NOT EXISTS mood_service;
 CREATE SCHEMA IF NOT EXISTS notification_service;
 
--- Users Table (Common, but kept in Activity Service schema)
+-- Users Table kept in users schema
 CREATE TABLE IF NOT EXISTS user_service.users(
     user_id SERIAL PRIMARY KEY,
     name VARCHAR(100),
     age INT CHECK (age BETWEEN 20 AND 60),
     gender VARCHAR(20) CHECK (gender IN ('Male', 'Female', 'Prefer not to say')),
     weight FLOAT CHECK (weight BETWEEN 50 AND 100),
-    email VARCHAR(50) UNIQUE
+    email VARCHAR(50) UNIQUE,
+    password_hash VARCHAR(255) not NULL
 );
 -- Table for Activity Service
 CREATE TABLE IF NOT EXISTS activity_service.activity_data  (
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS activity_service.activity_data  (
 );
 
 -- Table for ML Mood Service
-CREATE TABLE IF NOT EXISTS ml_mood_service.mood_data (
+CREATE TABLE IF NOT EXISTS mood_service.mood_data (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     date DATE NOT NULL,
