@@ -5,14 +5,15 @@ CREATE SCHEMA IF NOT EXISTS mood_service;
 CREATE SCHEMA IF NOT EXISTS notification_service;
 
 -- Users Table kept in users schema
-CREATE TABLE IF NOT EXISTS user_service.users(
+CREATE TABLE IF NOT EXISTS user_service.users (
     user_id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
+    name VARCHAR(100) NOT NULL,
     age INT CHECK (age BETWEEN 20 AND 60),
     gender VARCHAR(20) CHECK (gender IN ('Male', 'Female', 'Prefer not to say')),
     weight FLOAT CHECK (weight BETWEEN 50 AND 100),
-    email VARCHAR(50) UNIQUE,
-    password_hash VARCHAR(255) not NULL
+    email VARCHAR(50) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(20) CHECK (role IN ('user', 'admin')) DEFAULT 'user' 
 );
 -- Table for Activity Service
 CREATE TABLE IF NOT EXISTS activity_service.activity_data  (

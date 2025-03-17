@@ -10,7 +10,7 @@ DATABASE_URL = os.getenv("DATABASE_URL_SYNC")
 
 # Define the file paths for each table
 DATA_FILES = {
-    #"users": "data/users_updated.csv",
+    "users": "data/users_updated1.csv",
     "activity": "data/activity.csv",
     "mood": "data/mood.csv",
 }
@@ -36,7 +36,7 @@ def insert_data_from_csv(table_name, file_path, insert_query):
 
 # Insert queries for each table
 INSERT_QUERIES = {
-    "users": "INSERT INTO user_service.users (user_id, name, age, gender, weight, email, password_hash) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+    "users": "INSERT INTO user_service.users (user_id, name, age, gender, weight, email, password_hash,role) VALUES (%s, %s, %s, %s, %s, %s, %s,%s)",
     "activity": "INSERT INTO activity_service.activity_data (user_id, date, steps, calories_burned, distance_km, active_minutes, workout_type) VALUES (%s, %s, %s, %s, %s, %s, %s)",
     "mood": "INSERT INTO mood_service.mood_data (user_id, date, heart_rate_avg, sleep_hours, mood, weather_conditions, location) VALUES (%s, %s, %s, %s, %s, %s, %s)",
 }

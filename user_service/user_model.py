@@ -12,4 +12,4 @@ class User(Base):
     weight = Column(Float,nullable=False)
     email = Column(String(50), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    
+    role = Column(String, default="user")

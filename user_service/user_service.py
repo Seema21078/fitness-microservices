@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from dotenv import load_dotenv
+from fastapi import FastAPI, Depends, HTTPException, status,Request,APIRouter
 from requests import Session
 from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,21 +13,18 @@ import os
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from user_service.dependencies import validate_token
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
+from logging_config import get_logger
 
-#for logging
-logger = logging.getLogger(__name__)
-# Create the directory if it doesn't exist
-log_dir = "C:/logs"
-os.makedirs(log_dir, exist_ok=True)  # Creates directory if missing
-
-logging.basicConfig(level=logging.INFO,
-                    filename=os.path.join(log_dir, "app.log"),
-                    filemode="a",         # Append mode
-                    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret")
+ALGORITHM = "HS256"
+security = HTTPBearer()
+logger = get_logger("user_service")  #Initialize logger properly
+logger.info("User Service Started.")
 
 # JWT Configurations
-SECRET_KEY = "your_secret_key"
-ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -44,15 +42,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 #Initialize Fast API app
-app = FastAPI()
-
-# was facing issue with user_id primary_key, check?
-# def reset_user_id_sequence(db: Session):
-#    db.execute( text("""
-#    SELECT setval('user_service.users_user_id_seq', 
-#    COALESCE((SELECT MAX(user_id) FROM user_service.users), 1), 
-#   true);"""))
-#    db.commit()
+app = FastAPI(title="User Service")
 
 #Pydantic schema for API requests, fastAPI will validate the incoming data
 class UserCreate(BaseModel):
@@ -99,6 +89,13 @@ def handle_database_error(func):
                 detail="Internal server error"
             )
     return wrapper
+
+# Validate option
+@app.get("/validate_token",tags=["Auth"])
+async def validate_token_api(user: dict = Depends(validate_token)):
+    """Expose validate_token as an API for other microservices."""
+    logger.info("validate_token called successfully for user: %s", user["user_id"])
+    return user
 
 # Register User API 
 @app.post("/register", response_model=UserResponse, tags=["Auth"])
@@ -157,8 +154,10 @@ async def login_for_access_token(user: UserLogin, db: AsyncSession = Depends(get
                 detail="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-
-        access_token = create_access_token(data={"sub": user.email})
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        
+        access_token = create_access_token(data={"sub": user.email,"role": user_record.role },
+                                           expires_delta=access_token_expires)
         logger.info(f"User {user.email} logged in successfully.")
         return {"access_token": access_token, "token_type": "bearer"}
 
@@ -178,36 +177,51 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
     if not user:
         logger.warning(f"User not found with ID: {user_id}")
         raise HTTPException(status_code=404, detail="User not found")
-    
     return user
     
 #POST Endpoint - Create a New User
-@app.post("/users", response_model=UserResponse)
+@app.post("/users", response_model=UserResponse, tags=["User"])
 @handle_database_error
 async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Check for existing user by email
+    """Create a new user in the database."""
+    logger.info(f"Received request to create user: {user.email}")
+
+    # Check if a user with the same email already exists
     stmt = select(User).where(User.email == user.email)
     result = await db.execute(stmt)
     existing_user = result.scalar_one_or_none()
+
     if existing_user:
         logger.warning(f"Duplicate email attempt: {user.email}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Email already exists, Please try with different email id"
+            detail="Email already exists, Please try with a different email id"
         )
     
     try:
-        db_user = User(**user.model_dump())
+        # Create new user
+        # Hash the password and create a new user
+        hashed_password = get_password_hash(user.password)
+        db_user = User(**user.model_dump(exclude={"password"}), password_hash=hashed_password)
         db.add(db_user)
         await db.commit()
         await db.refresh(db_user)  # Refresh to get the user_id
-        logger.info(f"New user created: {db_user.user_id}")
+        
+        logger.info(f"New user created successfully: User ID {db_user.user_id}, Email: {user.email}")
         return db_user  # Return the actual user object
-    
+
     except IntegrityError as e:
         await db.rollback()  # Correctly await rollback
-        logger.error(f"Database integrity error: {str(e)}")
+        logger.error(f"Database integrity error while creating user {user.email}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid data input"
+        )
+    
+    except Exception as e:
+        await db.rollback()
+        logger.critical(f"Unexpected error during user creation for {user.email}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
         )
