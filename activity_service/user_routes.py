@@ -47,7 +47,7 @@ async def log_activity(
     user_id1 = result.scalar_one_or_none()
 
     if not user_id1:
-        logger.warning(f"User email {current_user['user_email']} not found in user_service.users")
+        logger.warning(f"User email {current_user['user_id']} not found in user_service.users")
         raise HTTPException(status_code=404, detail="User not found")
 
     # Store the retrieved `user_id` in activity_data
@@ -69,13 +69,27 @@ async def get_activity(
     db: AsyncSession = Depends(get_db)
 ):
     logger.info(f"Fetching activity {id} for user {current_user['user_id']}")
+    
+    # Fetch `user_id` using SQLAlchemy ORM (instead of raw SQL)
+    stmt = select(User.user_id).where(User.email == current_user["user_id"])
+    result = await db.execute(stmt)
+    user_id1 = result.scalar_one_or_none()
+    
+    if not user_id1:
+        logger.warning(f"User email {current_user['user_id']} not found in user_service.users")
+        raise HTTPException(status_code=404, detail="User not found")
 
+    # if user is valid, filter activity details 
     result = await db.execute(select(Activity).filter(Activity.id == id))
     activity = result.scalar_one_or_none()
-
-    if not activity or activity.user_id != current_user["user_id"]:
+    
+    if not activity:
+        logger.warning(f"Activity id is invalid {id}")
+        raise HTTPException(status_code=403, detail="Invalid Activity")
+    
+    if activity.user_id != user_id1:
         logger.warning(f"Unauthorized access attempt by user {current_user['user_id']} for activity {id}")
         raise HTTPException(status_code=403, detail="Access Denied")
-
+    
     logger.info(f"Activity {id} fetched successfully")
     return activity
