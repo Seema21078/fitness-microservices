@@ -93,3 +93,74 @@ async def get_activity(
     
     logger.info(f"Activity {id} fetched successfully")
     return activity
+
+# Update Activity API
+@router.put("/{id}", response_model=ActivityResponse)
+async def update_activity(
+    id: int,
+    activity_update: ActivityCreate,
+    current_user: dict = Depends(validate_token),
+    db: AsyncSession = Depends(get_db)
+):
+    logger.info(f"User {current_user['user_id']} attempting to update activity {id}")
+
+    # Fetch activity from database
+    result = await db.execute(select(Activity).where(Activity.id == id))
+    activity = result.scalar_one_or_none()
+
+    # If activity does not exist, return 404
+    if not activity:
+        logger.warning(f"Activity {id} not found")
+        raise HTTPException(status_code=404, detail="Activity not found")
+    
+    #Find user_id from current user email id
+    stmt = select(User.user_id).where(User.email == current_user["user_id"] )
+    result = await db.execute(stmt)
+    user_id1 = result.scalar_one_or_none()
+    
+    # Ensure the logged-in user owns this activity
+    if activity.user_id != user_id1:
+        logger.warning(f"Unauthorized update attempt by user {current_user['user_id']} for activity {id}")
+        raise HTTPException(status_code=403, detail="Access Denied")
+
+    # Update only the provided fields
+    update_data = activity_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(activity, key, value)
+
+    # Save changes to database
+    await db.commit()
+    await db.refresh(activity)
+
+    logger.info(f"Activity {id} updated successfully for user {current_user['user_id']}")
+    return activity
+
+# Delete Activity API
+@router.delete("/{id}")
+async def delete_activity(
+    id: int,
+    current_user: dict = Depends(validate_token),
+    db: AsyncSession = Depends(get_db)
+):
+    logger.info(f"Fetching activity {id} for user {current_user['user_id']}")
+    activity = await db.execute(select(Activity).where(Activity.id == id))
+    activity = activity.scalar_one_or_none()
+    
+    # If activity does not exist, return 404
+    if not activity:
+        logger.warning(f"Activity {id} not found")
+        raise HTTPException(status_code=404, detail="Activity not found")
+    
+    # Find user_id from current user email id
+    stmt = select(User.user_id).where(User.email == current_user["user_id"] )
+    result = await db.execute(stmt)
+    user_id1 = result.scalar_one_or_none()
+    
+    # Ensure the logged-in user owns this activity
+    if activity.user_id != user_id1:
+        logger.warning(f"Unauthorized update attempt by user {current_user['user_id']} for activity {id}")
+        raise HTTPException(status_code=403, detail="Access Denied")
+    
+    await db.delete(activity)
+    await db.commit()
+    return {"message":" Activity deleted successfully"} 
