@@ -37,3 +37,5 @@ class ActivitySummary(BaseModel):
     total_calories: float
     total_distance: float
     total_active_minutes: int
+    period_start: date
+    period_end: date
